@@ -27,6 +27,8 @@
         header h1 {
             font-size: 1.5rem;
             margin: 0;
+            text-align: center;
+            flex: 1;
         }
 
         .profile-icon {
@@ -83,10 +85,19 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         form button:hover {
             background-color: #0056b3;
+        }
+
+        form button svg {
+            fill: white;
+            width: 16px;
+            height: 16px;
         }
 
         /* Table styles */
@@ -121,6 +132,8 @@
             text-decoration: none;
             border: 1px solid #007bff;
             border-radius: 4px;
+            display: inline-block;
+            text-align: center;
         }
 
         .actions a:hover, .actions form button:hover {
@@ -164,7 +177,11 @@
         <!-- Formulario de Búsqueda -->
         <form action="{{ route('files.search') }}" method="GET">
             <input type="text" name="query" placeholder="Buscar archivos..." required>
-            <button type="submit">Buscar</button>
+            <button type="submit">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M10 2a8 8 0 1 0 4.906 14.32l5.387 5.387a1 1 0 0 0 1.414-1.414l-5.387-5.387A8 8 0 0 0 10 2zm0 2a6 6 0 1 1 0 12A6 6 0 0 1 10 4z"></path>
+                </svg>
+            </button>
         </form>
 
         <!-- Formulario de Subida -->
