@@ -5,15 +5,19 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\File;
+use App\Models\Folder;
 use Illuminate\Support\Str;
 
 class FileController extends Controller
 {
-    // Listar todos los archivos
-    public function index()
+    // Listar todos los archivos y carpetas
+    public function index(Request $request, $folderId = null)
     {
-        $files = File::withTrashed()->get(); // Incluye los eliminados
-        return view('files.index', compact('files'));
+        $folder = $folderId ? Folder::findOrFail($folderId) : null;
+        $folders = Folder::where('parent_id', $folderId)->get();
+        $files = File::where('folder_id', $folderId)->withTrashed()->get(); // Incluye los eliminados
+
+        return view('files.index', compact('folders', 'files', 'folder'));
     }
 
     // Subir un archivo
@@ -21,13 +25,15 @@ class FileController extends Controller
     {
         $request->validate([
             'file' => 'required|file|max:2048',
+            'folder_id' => 'nullable|exists:folders,id',
         ]);
 
         $path = $request->file('file')->store('uploads', 'public');
 
-        $file = File::create([
+        File::create([
             'name' => $request->file('file')->getClientOriginalName(),
             'path' => $path,
+            'folder_id' => $request->input('folder_id'),
         ]);
 
         return redirect()->back()->with('success', 'Archivo subido exitosamente.');
@@ -76,32 +82,6 @@ class FileController extends Controller
         $file->forceDelete();
 
         return redirect()->back()->with('success', 'Archivo eliminado permanentemente.');
-    }
-
-    // Compartir un archivo
-    public function share($id)
-    {
-        $file = File::findOrFail($id);
-
-        $file->share_token = Str::random(40);
-        $file->save();
-
-        $shareableLink = route('files.shared', ['token' => $file->share_token]);
-
-        return redirect()->back()->with('success', 'Enlace de compartición generado: ' . $shareableLink);
-    }
-
-    // Descargar archivo compartido
-    public function shared($token)
-    {
-        $file = File::where('share_token', $token)->firstOrFail();
-
-        $filePath = storage_path('app/public/' . $file->path);
-        if (file_exists($filePath)) {
-            return response()->download($filePath, $file->name);
-        }
-
-        return redirect()->back()->with('error', 'Archivo no encontrado.');
     }
 
     // Vista previa del archivo
@@ -158,5 +138,69 @@ class FileController extends Controller
             ->get();
 
         return view('files.index', compact('files'));
+    }
+
+    // Compartir un archivo
+    public function share($id)
+    {
+        $file = File::findOrFail($id);
+
+        // Generar token si no existe
+        if (!$file->share_token) {
+            $file->generateShareToken();
+        }
+
+        // Retornar el enlace
+        return response()->json([
+            'url' => route('files.shared', $file->share_token)
+        ]);
+    }
+
+    // Descargar archivo compartido
+    public function shared($token)
+    {
+        $file = File::where('share_token', $token)->firstOrFail();
+
+        return Storage::download($file->path, $file->name);
+    }
+
+    // Edición de metadatos
+    public function editMetadata($id)
+    {
+        $file = File::findOrFail($id);
+        return view('files.edit-metadata', compact('file'));
+    }
+
+    public function updateMetadata(Request $request, $id)
+    {
+        $file = File::findOrFail($id);
+
+        $request->validate([
+            'description' => 'nullable|string|max:255',
+            'tags' => 'nullable|string',
+        ]);
+
+        $file->update([
+            'description' => $request->input('description'),
+            'tags' => $request->input('tags') ? json_decode($request->input('tags')) : null,
+        ]);
+
+        return redirect()->route('files.index')->with('success', 'Metadatos actualizados correctamente.');
+    }
+
+    // Crear una nueva carpeta
+    public function createFolder(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'parent_id' => 'nullable|exists:folders,id',
+        ]);
+
+        Folder::create([
+            'name' => $request->input('name'),
+            'parent_id' => $request->input('parent_id'),
+        ]);
+
+        return back()->with('success', 'Carpeta creada exitosamente.');
     }
 }

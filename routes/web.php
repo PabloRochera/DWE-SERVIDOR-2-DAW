@@ -16,12 +16,11 @@ Route::get('/dashboard', function () {
 
 // Rutas protegidas para autenticación
 Route::middleware('auth')->group(function () {
+    // Gestión del perfil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-
-    
     // Gestión de Archivos
     Route::get('/files', [FileController::class, 'index'])->name('files.index');
     Route::post('/files/upload', [FileController::class, 'upload'])->name('files.upload');
@@ -35,6 +34,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/files/{id}/update', [FileController::class, 'updateFile'])->name('files.update');
     Route::get('/files/{id}/versions', [FileController::class, 'versions'])->name('files.versions');
     Route::get('/files/search', [FileController::class, 'search'])->name('files.search');
+
+    // Nuevas rutas para edición de metadatos
+    Route::get('/files/{id}/edit-metadata', [FileController::class, 'editMetadata'])->name('files.editMetadata');
+    Route::post('/files/{id}/update-metadata', [FileController::class, 'updateMetadata'])->name('files.updateMetadata');
+
+    // Organización en carpetas
+    Route::get('/files/folder/{folderId?}', [FileController::class, 'index'])->name('files.folder');
+    Route::post('/folders/create', [FileController::class, 'createFolder'])->name('folders.create');
 });
 
 // Archivos de autenticación
